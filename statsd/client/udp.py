@@ -47,6 +47,7 @@ class StatsClient(StatsClientBase):
         while try_count <= self._send_retries:
             try:
                 self._sock.sendto(data.encode('ascii'), self._addr)
+                break
             except (OSError, RuntimeError) as e:
                 if self._send_retry_before_callback is not None:
                     self._send_retry_before_callback(try_count, retry_reason=e)

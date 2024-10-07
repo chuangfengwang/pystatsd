@@ -3,7 +3,7 @@ requires = ["setuptools>=61.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "statsd-qunar"
+name = "statsd"
 version = "4.0.2"
 authors = [{name = "James Socol", email = "me@jamessocol.com"}]
 license = {text = "MIT"}
