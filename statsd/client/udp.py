@@ -28,7 +28,8 @@ class StatsClient(StatsClientBase):
 
     def __init__(self, host='localhost', port=8125, prefix=None,
                  maxudpsize=512, ipv6=False,
-                 send_retries=3, send_retry_interval=0.01, send_retry_before_callback=None):
+                 send_retries=3, send_retry_interval=0.01, send_retry_before_callback=None,
+                 send_fail_callback=None):
         """Create a new client."""
         fam = socket.AF_INET6 if ipv6 else socket.AF_INET
         family, _, _, _, addr = socket.getaddrinfo(
@@ -40,6 +41,7 @@ class StatsClient(StatsClientBase):
         self._send_retries = send_retries
         self._send_retry_interval = send_retry_interval
         self._send_retry_before_callback = send_retry_before_callback
+        self._send_fail_callback = send_fail_callback
 
     def _send(self, data):
         """Send data to statsd."""
@@ -53,6 +55,9 @@ class StatsClient(StatsClientBase):
                     self._send_retry_before_callback(try_count, retry_reason=e)
                 time.sleep(self._send_retry_interval)
                 try_count += 1
+                # retry count meets the max count
+                if try_count > self._send_retries and self._send_fail_callback is not None:
+                    self._send_fail_callback(try_count, retry_reason=e)
 
     def close(self):
         if self._sock and hasattr(self._sock, 'close'):

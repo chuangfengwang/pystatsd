@@ -35,7 +35,8 @@ class TCPStatsClient(StreamClientBase):
 
     def __init__(self, host='localhost', port=8125, prefix=None,
                  timeout=None, ipv6=False,
-                 send_retries=3, send_retry_interval=0.01, send_retry_before_callback=None):
+                 send_retries=3, send_retry_interval=0.01, send_retry_before_callback=None,
+                 send_fail_callback=None):
         """Create a new client."""
         self._host = host
         self._port = port
@@ -46,6 +47,7 @@ class TCPStatsClient(StreamClientBase):
         self._send_retries = send_retries
         self._send_retry_interval = send_retry_interval
         self._send_retry_before_callback = send_retry_before_callback
+        self._send_fail_callback = send_fail_callback
 
     def connect(self):
         fam = socket.AF_INET6 if self._ipv6 else socket.AF_INET
@@ -69,6 +71,9 @@ class TCPStatsClient(StreamClientBase):
                     self._send_retry_before_callback(try_count, retry_reason=e)
                 time.sleep(self._send_retry_interval)
                 try_count += 1
+                # retry count meets the max count
+                if try_count > self._send_retries and self._send_fail_callback is not None:
+                    self._send_fail_callback(try_count, retry_reason=e)
 
 
 class UnixSocketStatsClient(StreamClientBase):
