@@ -1,4 +1,5 @@
 import socket
+import time
 
 from .base import StatsClientBase, PipelineBase
 
@@ -25,12 +26,6 @@ class StreamClientBase(StatsClientBase):
     def pipeline(self):
         return StreamPipeline(self)
 
-    def _send(self, data):
-        """Send data to statsd."""
-        if not self._sock:
-            self.connect()
-        self._do_send(data)
-
     def _do_send(self, data):
         self._sock.sendall(data.encode('ascii') + b'\n')
 
@@ -39,7 +34,8 @@ class TCPStatsClient(StreamClientBase):
     """TCP version of StatsClient."""
 
     def __init__(self, host='localhost', port=8125, prefix=None,
-                 timeout=None, ipv6=False):
+                 timeout=None, ipv6=False,
+                 send_retries=3, send_retry_interval=0.01, send_retry_before_callback=None):
         """Create a new client."""
         self._host = host
         self._port = port
@@ -47,6 +43,9 @@ class TCPStatsClient(StreamClientBase):
         self._timeout = timeout
         self._prefix = prefix
         self._sock = None
+        self._send_retries = send_retries
+        self._send_retry_interval = send_retry_interval
+        self._send_retry_before_callback = send_retry_before_callback
 
     def connect(self):
         fam = socket.AF_INET6 if self._ipv6 else socket.AF_INET
@@ -55,6 +54,20 @@ class TCPStatsClient(StreamClientBase):
         self._sock = socket.socket(family, socket.SOCK_STREAM)
         self._sock.settimeout(self._timeout)
         self._sock.connect(addr)
+
+    def _send(self, data):
+        """Send data to statsd."""
+        if not self._sock:
+            self.connect()
+        try_count = 1
+        while try_count <= self._send_retries:
+            try:
+                self._do_send(data)
+            except (OSError, RuntimeError) as e:
+                if self._send_retry_before_callback is not None:
+                    self._send_retry_before_callback(try_count, retry_reason=e)
+                time.sleep(self._send_retry_interval)
+                try_count += 1
 
 
 class UnixSocketStatsClient(StreamClientBase):
@@ -71,3 +84,9 @@ class UnixSocketStatsClient(StreamClientBase):
         self._sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._sock.settimeout(self._timeout)
         self._sock.connect(self._socket_path)
+
+    def _send(self, data):
+        """Send data to statsd."""
+        if not self._sock:
+            self.connect()
+        self._do_send(data)
