@@ -66,10 +66,17 @@ class TCPStatsClient(StreamClientBase):
             try:
                 self._do_send(data)
                 break
-            except (OSError, RuntimeError, BrokenPipeError) as e:
+            except (OSError, RuntimeError, AttributeError) as e:
                 if self._send_retry_before_callback is not None:
                     self._send_retry_before_callback(try_count, e)
                 time.sleep(self._send_retry_interval)
+                # reconnect
+                self.close()
+                try:
+                    self.connect()
+                except Exception as e:
+                    pass
+
                 try_count += 1
                 # retry count meets the max count
                 if try_count > self._send_retries and self._send_fail_callback is not None:

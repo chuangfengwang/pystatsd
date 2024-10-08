@@ -31,17 +31,26 @@ class StatsClient(StatsClientBase):
                  send_retries=3, send_retry_interval=0.01, send_retry_before_callback=None,
                  send_fail_callback=None):
         """Create a new client."""
-        fam = socket.AF_INET6 if ipv6 else socket.AF_INET
-        family, _, _, _, addr = socket.getaddrinfo(
-            host, port, fam, socket.SOCK_DGRAM)[0]
-        self._addr = addr
-        self._sock = socket.socket(family, socket.SOCK_DGRAM)
+        self._ipv6 = ipv6
+        self._host = host
+        self._port = port
+        self._addr = None
+        self._sock = None
         self._prefix = prefix
         self._maxudpsize = maxudpsize
         self._send_retries = send_retries
         self._send_retry_interval = send_retry_interval
         self._send_retry_before_callback = send_retry_before_callback
         self._send_fail_callback = send_fail_callback
+
+        self.connect()
+
+    def connect(self):
+        fam = socket.AF_INET6 if self._ipv6 else socket.AF_INET
+        family, _, _, _, addr = socket.getaddrinfo(
+            self._host, self._port, fam, socket.SOCK_DGRAM)[0]
+        self._addr = addr
+        self._sock = socket.socket(family, socket.SOCK_DGRAM)
 
     def _send(self, data):
         """Send data to statsd."""
@@ -50,10 +59,17 @@ class StatsClient(StatsClientBase):
             try:
                 self._sock.sendto(data.encode('ascii'), self._addr)
                 break
-            except (OSError, RuntimeError) as e:
+            except (OSError, RuntimeError, AttributeError) as e:
                 if self._send_retry_before_callback is not None:
                     self._send_retry_before_callback(try_count, e)
                 time.sleep(self._send_retry_interval)
+                # reconnect
+                self.close()
+                try:
+                    self.connect()
+                except Exception as e:
+                    pass
+
                 try_count += 1
                 # retry count meets the max count
                 if try_count > self._send_retries and self._send_fail_callback is not None:

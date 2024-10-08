@@ -73,3 +73,19 @@ There are lots of docs in the ``docs/`` directory and on ReadTheDocs_.
 .. _statsd: https://github.com/etsy/statsd
 .. _Graphite: https://graphite.readthedocs.io/
 .. _ReadTheDocs: https://statsd.readthedocs.io/en/latest/index.html
+
+
+Development
+====
+
+Build package by poetry::
+
+
+    pip install poetry
+
+    poetry config repositories.<repo-name> <repo-url>
+    poetry config http-basic.<repo-name> <user-name> <password>
+
+    poetry build
+    poetry publish -r <repo-name>  # or with user and password
+    poetry publish -r <repo-name> -u <user-name> -p <password>
