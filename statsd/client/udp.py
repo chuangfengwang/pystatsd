@@ -67,7 +67,7 @@ class StatsClient(StatsClientBase):
                 self.close()
                 try:
                     self.connect()
-                except Exception as e:
+                except Exception as ec:
                     pass
 
                 try_count += 1
