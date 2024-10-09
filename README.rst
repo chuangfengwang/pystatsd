@@ -43,6 +43,14 @@ You can also add a prefix to all your stats:
     >>> c = statsd.StatsClient('localhost', 8125, prefix='foo')
     >>> c.incr('bar')  # Will be 'foo.bar' in statsd/graphite.
 
+If your network is not stable, you can add retry (version>=4.0.2)
+
+.. code-block:: python
+
+    >>> import statsd
+    >>> c = statsd.StatsClient('localhost', 8125, prefix='foo', send_retries=2)  # will try total 2 times (default is 1) when send data
+    >>> c.incr('bar')
+
 
 Installing
 ==========
