@@ -35,7 +35,7 @@ class TCPStatsClient(StreamClientBase):
 
     def __init__(self, host='localhost', port=8125, prefix=None,
                  timeout=None, ipv6=False,
-                 send_retries=2, send_retry_interval=0.01, send_retry_before_callback=None,
+                 send_retries=1, send_retry_interval=0.01, send_retry_before_callback=None,
                  send_fail_callback=None):
         """Create a new client."""
         self._host = host
